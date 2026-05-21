@@ -43,6 +43,7 @@ const router = createRouter({
         { path: 'demo/18', name: 'Demo18', component: () => import('@/views/demos/Demo18.vue'), meta: { title: '路网巡游' } },
         { path: 'demo/19', name: 'Demo19', component: () => import('@/views/demos/Demo19.vue'), meta: { title: '数据可视化叠加' } },
         { path: 'demo/20', name: 'Demo20', component: () => import('@/views/demos/Demo20.vue'), meta: { title: '综合教培场景' } },
+        { path: 'demo/21', name: 'Demo21', component: () => import('@/views/demos/Demo21.vue'), meta: { title: '模块插槽箱' } },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/login' },

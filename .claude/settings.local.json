@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "PowerShell(pnpm create *)",
-      "PowerShell(Get-ChildItem *)"
+      "PowerShell(Get-ChildItem *)",
+      "Bash(pnpm run *)"
     ]
   }
 }

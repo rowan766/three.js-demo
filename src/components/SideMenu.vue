@@ -49,6 +49,7 @@ const menuGroups = [
       { path: '/demo/18', label: '18 路网巡游' },
       { path: '/demo/19', label: '19 数据可视化叠加' },
       { path: '/demo/20', label: '20 综合教培场景' },
+      { path: '/demo/21', label: '21 模块插槽箱' },
     ],
   },
 ]
