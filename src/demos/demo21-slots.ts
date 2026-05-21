@@ -18,7 +18,7 @@ interface ModuleSlot {
   animT: number          // 0 = inserted, 1 = ejected
   targetT: number
   baseZ: number          // initial local Z inside boxGroup
-  popup: CSS2DObject | null
+  popup: HTMLDivElement | null
   row: number
   col: number
   data: ModuleData
@@ -85,6 +85,7 @@ const mouse = new THREE.Vector2()
 let hoveredMesh: THREE.Mesh | null = null
 let styleEl: HTMLStyleElement | null = null
 let boxGroup: THREE.Group
+let popupContainer: HTMLElement | null = null  // ref for overlay popups
 
 // ─── Data generator ───────────────────────────────────────────────────────────
 function genData(col: number, row: number): ModuleData {
@@ -120,7 +121,7 @@ function injectStyle() {
 }
 
 // ─── Popup builder ─────────────────────────────────────────────────────────────
-function buildPopup(data: ModuleData, onClose: () => void): CSS2DObject {
+function buildPopup(data: ModuleData, onClose: () => void): HTMLDivElement {
   const tc = data.typeText        // type accent color
   const sc = data.status === 'normal' ? '#52e8a0'
     : data.status === 'warning'   ? '#ffca28'
@@ -128,11 +129,13 @@ function buildPopup(data: ModuleData, onClose: () => void): CSS2DObject {
 
   const wrap = document.createElement('div')
   wrap.style.cssText = [
-    'transform:translate(-50%,calc(-100% - 18px))',
-    'pointer-events:none',
+    'position:absolute',
+    'transform:translate(-50%,-100%)',
+    'pointer-events:auto',
     'user-select:none',
     'animation:s21-fadein .18s ease-out both',
     'width:230px',
+    'z-index:10',
   ].join(';')
 
   // Card
@@ -189,7 +192,7 @@ function buildPopup(data: ModuleData, onClose: () => void): CSS2DObject {
     'height:18px',
     'border-radius:50%',
     `background:rgba(255,255,255,.05)`,
-    `border:1px solid ${tc}44`,
+    `border:1px solid ${tc}44}`,
     `color:${tc}`,
     'font-size:12px',
     'line-height:1',
@@ -263,8 +266,7 @@ function buildPopup(data: ModuleData, onClose: () => void): CSS2DObject {
   card.appendChild(hdr); card.appendChild(scan); card.appendChild(params); card.appendChild(caret)
   wrap.appendChild(card)
 
-  const obj = new CSS2DObject(wrap)
-  return obj
+  return wrap
 }
 
 // ─── Slot position helpers ─────────────────────────────────────────────────────
@@ -279,25 +281,24 @@ function slotY(row: number): number {
 
 // ─── Interaction ───────────────────────────────────────────────────────────────
 function showDetail(s: ModuleSlot) {
+  if (!popupContainer) return
   // Close any other detail popup first
   slots.forEach(o => {
     if (o !== s && o.state === 'detail') hideDetail(o)
   })
   const pop = buildPopup(s.data, () => {
     hideDetail(s)
-    // After closing popup, go back to ejected (not inserted)
-    s.state = 'ejected'
+    s.targetT = 0
+    s.state = 'inserted'
   })
-  // Anchor above the card face
-  pop.position.set(0, SLOT_H / 2 + 0.1, SLOT_D / 2 + 0.05)
-  s.mesh.add(pop)
+  popupContainer.appendChild(pop)
   s.popup = pop
   s.state = 'detail'
 }
 
 function hideDetail(s: ModuleSlot) {
   if (s.popup) {
-    s.mesh.remove(s.popup)
+    s.popup.remove()
     s.popup = null
   }
 }
@@ -313,6 +314,7 @@ function handleClick(s: ModuleSlot) {
     case 'inserted':
       s.targetT = 1
       s.state = 'ejected'
+      showDetail(s)
       break
     case 'ejected':
       showDetail(s)
@@ -477,7 +479,7 @@ export function init(container: HTMLElement) {
   renderer.outputColorSpace = THREE.SRGBColorSpace
   container.appendChild(renderer.domElement)
 
-  // CSS2D renderer — overlay is pointer-events:none so close btn children still fire
+  // CSS2D renderer — overlay is transparent to events; popups use separate HTML overlay
   labelRenderer = new CSS2DRenderer()
   labelRenderer.setSize(container.clientWidth, container.clientHeight)
   Object.assign(labelRenderer.domElement.style, {
@@ -486,6 +488,9 @@ export function init(container: HTMLElement) {
     pointerEvents: 'none', overflow: 'hidden',
   })
   container.appendChild(labelRenderer.domElement)
+
+  // Popup overlay container (independent of CSS2D layer)
+  popupContainer = container
 
   // ── Lights ──
   scene.add(new THREE.AmbientLight(0x8899cc, 3.2))
@@ -602,6 +607,26 @@ function loop() {
     const led = s.ledMesh.material as THREE.MeshBasicMaterial
     led.opacity = alpha
     led.transparent = true
+
+    // Update popup position (project 3D → 2D screen)
+    if (s.popup && popupContainer) {
+      const pos = new THREE.Vector3()
+      pos.set(0, SLOT_H / 2 + 0.15, SLOT_D / 2 + 0.05)
+      s.mesh.localToWorld(pos)
+      pos.project(camera)
+
+      const rect = renderer.domElement.getBoundingClientRect()
+      const x = (pos.x * 0.5 + 0.5) * rect.width
+      const y = (-pos.y * 0.5 + 0.5) * rect.height
+
+      if (pos.z < 1) {
+        s.popup.style.display = ''
+        s.popup.style.left = `${x}px`
+        s.popup.style.top = `${y}px`
+      } else {
+        s.popup.style.display = 'none'
+      }
+    }
   })
 
   controls.update()
