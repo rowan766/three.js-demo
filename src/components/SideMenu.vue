@@ -68,7 +68,7 @@ function isActive(path: string) {
   <aside class="sidebar" :class="{ collapsed: sidebarStore.collapsed }">
     <div class="sidebar-logo">
       <span class="logo-icon">🚄</span>
-      <span class="logo-text" v-show="!sidebarStore.collapsed">铁路3D教培</span>
+      <span class="logo-text" v-show="!sidebarStore.collapsed">Three.js 3D 入门示例</span>
     </div>
 
     <div class="menu-scroll">
